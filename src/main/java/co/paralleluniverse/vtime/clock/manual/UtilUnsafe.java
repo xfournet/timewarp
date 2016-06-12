@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are license under the terms of the
  * MIT license.
  */
-package co.paralleluniverse.vtime;
+package co.paralleluniverse.vtime.clock.manual;
 
 import java.lang.reflect.Field;
 import sun.misc.Unsafe;
@@ -21,10 +21,11 @@ class UtilUnsafe {
     private UtilUnsafe() {
     }
 
-    public static Unsafe getUnsafe1() {
+    static Unsafe getUnsafe1() {
         // Not on bootclasspath
-        if (UtilUnsafe.class.getClassLoader() == null)
+        if (UtilUnsafe.class.getClassLoader() == null) {
             return Unsafe.getUnsafe();
+        }
         try {
             Field f = Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
@@ -34,7 +35,7 @@ class UtilUnsafe {
         }
     }
 
-    public static Unsafe getUnsafe() {
+    static Unsafe getUnsafe() {
         try {
             return Unsafe.getUnsafe();
         } catch (SecurityException se) {
@@ -52,8 +53,9 @@ class UtilUnsafe {
                             for (Field f : k.getDeclaredFields()) {
                                 f.setAccessible(true);
                                 final Object x = f.get(null);
-                                if (k.isInstance(x))
+                                if (k.isInstance(x)) {
                                     return k.cast(x);
+                                }
                             }
                             throw new NoSuchFieldError("the Unsafe");
                         }

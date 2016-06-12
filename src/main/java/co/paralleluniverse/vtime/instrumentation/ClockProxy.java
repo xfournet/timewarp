@@ -1,13 +1,17 @@
 /*
  * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are license under the terms of the
  * MIT license.
  */
-package co.paralleluniverse.vtime;
+package co.paralleluniverse.vtime.instrumentation;
 
-public final class Clock_ {
-    private Clock_() {
+import java.lang.management.RuntimeMXBean;
+import co.paralleluniverse.vtime.VirtualClock;
+
+@SuppressWarnings({"WeakerAccess", "unused"})
+public final class ClockProxy {
+    private ClockProxy() {
     }
 
     public static long System_currentTimeMillis() {
@@ -16,6 +20,14 @@ public final class Clock_ {
 
     public static long System_nanoTime() {
         return VirtualClock.get().System_nanoTime();
+    }
+
+    public static long RuntimeMXBean_getStartTime(RuntimeMXBean runtimeMXBean) {
+        return VirtualClock.get().RuntimeMXBean_getStartTime(runtimeMXBean);
+    }
+
+    public static void Object_wait(Object obj) throws InterruptedException {
+        VirtualClock.get().Object_wait(obj, 0); // as per specification
     }
 
     public static void Object_wait(Object obj, long timeout) throws InterruptedException {

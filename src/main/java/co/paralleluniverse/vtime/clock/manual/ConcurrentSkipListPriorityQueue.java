@@ -6,13 +6,11 @@
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-package co.paralleluniverse.vtime;
+package co.paralleluniverse.vtime.clock.manual;
 
 import java.util.*;
 
-class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
-        implements Cloneable,
-        java.io.Serializable {
+class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E> implements Cloneable, java.io.Serializable {
     /*
      * This class implements a tree-like two-dimensionally linked skip
      * list in which the index levels are represented in separate
@@ -270,10 +268,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * clear, readObject. and ConcurrentSkipListSet.clone.
      * (Note that comparator must be separately initialized.)
      */
-    final void initialize() {
+    private void initialize() {
         randomSeed = seedGenerator.nextInt() | 0x0100; // ensure nonzero
-        head = new HeadIndex<E>(new Node<E>(null, BASE_HEADER, null),
-                null, null, 1);
+        head = new HeadIndex<>(new Node<E>(null, BASE_HEADER, null), null, null, 1);
     }
 
     /**
@@ -284,6 +281,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Nodes -------------- */
+
     /**
      * Nodes hold keys and values, and are singly linked in sorted
      * order, possibly with some intervening marker nodes. The list is
@@ -291,7 +289,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * is declared only as Object because it takes special non-V
      * values for marker and header nodes.
      */
-    static final class Node<V> {
+    private static final class Node<V> {
         final V key;
         volatile Object value;
         volatile Node<V> next;
@@ -343,7 +341,6 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * to use that read (not another done here) and so directly
          * test if value points to node.
          *
-         * @param n a possibly null reference to a node
          * @return true if this node is a marker node
          */
         boolean isMarker() {
@@ -366,7 +363,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * @return true if successful
          */
         boolean appendMarker(Node<V> f) {
-            return casNext(f, new Node<V>(f));
+            return casNext(f, new Node<>(f));
         }
 
         /**
@@ -385,9 +382,11 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
              */
             if (f == next && this == b.next) {
                 if (f == null || f.value != f) // not already marked
+                {
                     appendMarker(f);
-                else
+                } else {
                     b.casNext(this, f.next);
+                }
             }
         }
 
@@ -396,14 +395,16 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * else null.
          *
          * @return this node's value if it isn't a marker or header or
-         *         is deleted, else null.
+         * is deleted, else null.
          */
         V getValidValue() {
             Object v = value;
-            if (v == this || v == BASE_HEADER)
+            if (v == this || v == BASE_HEADER) {
                 return null;
+            }
             return (V) v;
         }
+
         // UNSAFE mechanics
         private static final sun.misc.Unsafe UNSAFE;
         private static final long valueOffset;
@@ -422,6 +423,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Indexing -------------- */
+
     /**
      * Index nodes represent the levels of the skip list. Note that
      * even though both Nodes and Indexes have forward-pointing
@@ -464,7 +466,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * unlink that may lose this index node, if the node being
          * indexed is known to be deleted, it doesn't try to link in.
          *
-         * @param succ    the expected current successor
+         * @param succ the expected current successor
          * @param newSucc the new successor
          * @return true if successful
          */
@@ -485,6 +487,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         final boolean unlink(Index<V> succ) {
             return !indexesDeletedNode() && casRight(succ, succ.right);
         }
+
         // Unsafe mechanics
         private static final sun.misc.Unsafe UNSAFE;
         private static final long rightOffset;
@@ -501,10 +504,11 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Head nodes -------------- */
+
     /**
      * Nodes heading each level keep track of their level.
      */
-    static final class HeadIndex<V> extends Index<V> {
+    private static final class HeadIndex<V> extends Index<V> {
         final int level;
 
         HeadIndex(Node<V> node, Index<V> down, Index<V> right, int level) {
@@ -514,9 +518,10 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Comparison utilities -------------- */
+
     /**
      * Represents a key with a comparator as a Comparable.
-     *
+     * <p>
      * Because most sorted collections seem to use natural ordering on
      * Comparables (Strings, Integers, etc), most internal methods are
      * geared to use them. This is generally faster than checking
@@ -529,7 +534,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * Comparators vs Comparables, which seems like the right
      * tradeoff.
      */
-    static final class ComparableUsingComparator<K> implements Comparable<K> {
+    private static final class ComparableUsingComparator<K> implements Comparable<K> {
         final K actualKey;
         final Comparator<? super K> cmp;
 
@@ -548,14 +553,15 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * cast key as Comparable, which may cause ClassCastException,
      * which is propagated back to caller.
      */
-    private Comparable<? super E> comparable(Object key)
-            throws ClassCastException {
-        if (key == null)
+    private Comparable<? super E> comparable(Object key) throws ClassCastException {
+        if (key == null) {
             throw new NullPointerException();
-        if (comparator != null)
-            return new ComparableUsingComparator<E>((E) key, comparator);
-        else
+        }
+        if (comparator != null) {
+            return new ComparableUsingComparator<>((E) key, comparator);
+        } else {
             return (Comparable<? super E>) key;
+        }
     }
 
     /**
@@ -564,13 +570,15 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      */
     int compare(E k1, E k2) throws ClassCastException {
         Comparator<? super E> cmp = comparator;
-        if (cmp != null)
+        if (cmp != null) {
             return cmp.compare(k1, k2);
-        else
+        } else {
             return ((Comparable<? super E>) k1).compareTo(k2);
+        }
     }
 
     /* ---------------- Traversal -------------- */
+
     /**
      * Returns a base-level node with key strictly less than given key,
      * or the base-level header if there is no such node. Also
@@ -581,18 +589,20 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * @return a predecessor of key
      */
     private Node<E> findPredecessor(Comparable<? super E> key) {
-        if (key == null)
+        if (key == null) {
             throw new NullPointerException(); // don't postpone errors
-        for (;;) {
+        }
+        for (; ; ) {
             Index<E> q = head;
             Index<E> r = q.right;
-            for (;;) {
+            for (; ; ) {
                 if (r != null) {
                     Node<E> n = r.node;
                     E k = n.key;
                     if (n.value == null) {
-                        if (!q.unlink(r))
+                        if (!q.unlink(r)) {
                             break;           // restart
+                        }
                         r = q.right;         // reread r
                         continue;
                     }
@@ -606,8 +616,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                 if (d != null) {
                     q = d;
                     r = d.right;
-                } else
+                } else {
                     return q.node;
+                }
             }
         }
     }
@@ -619,21 +630,21 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * from findPredecessor, processing base-level deletions as
      * encountered. Some callers rely on this side-effect of clearing
      * deleted nodes.
-     *
+     * <p>
      * Restarts occur, at traversal step centered on node n, if:
-     *
+     * <p>
      * (1) After reading n's next field, n is no longer assumed
      * predecessor b's current successor, which means that
      * we don't have a consistent 3-node snapshot and so cannot
      * unlink any subsequent deleted nodes encountered.
-     *
+     * <p>
      * (2) n's value field is null, indicating n is deleted, in
      * which case we help out an ongoing structural deletion
      * before retrying. Even though there are cases where such
      * unlinking doesn't require restart, they aren't sorted out
      * here because doing so would not usually outweigh cost of
      * restarting.
-     *
+     * <p>
      * (3) n is a marker or n's predecessor's value field is null,
      * indicating (among other possibilities) that
      * findPredecessor returned a deleted node. We can't unlink
@@ -645,7 +656,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * each iteration to help avoid contention with other
      * threads by callers that will fail to be able to change
      * links, and so will retry anyway.
-     *
+     * <p>
      * The traversal loops in doPut, doRemove, and findNear all
      * include the same three kinds of checks. And specialized
      * versions appear in findFirst, and findLast and their
@@ -656,29 +667,37 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * @param key the key
      * @return node holding key, or null if no such
      */
-    Node<E> findNode(Comparable<? super E> key) {
-        for (;;) {
+    private Node<E> findNode(Comparable<? super E> key) {
+        for (; ; ) {
             Node<E> b = findPredecessor(key);
             Node<E> n = b.next;
-            for (;;) {
-                if (n == null)
+            for (; ; ) {
+                if (n == null) {
                     return null;
+                }
                 Node<E> f = n.next;
                 if (n != b.next)                // inconsistent read
+                {
                     break;
+                }
                 Object v = n.value;
                 if (v == null) {                // n is deleted
                     n.helpDelete(b, f);
                     break;
                 }
                 if (v == n || b.value == null)  // b is deleted
+                {
                     break;
+                }
                 int c = key.compareTo(n.key);
                 if (c == 0) {
                     if (key.equals(n.key)) // allow comapreTo equality
+                    {
                         return n;
-                } else if (c < 0)
+                    }
+                } else if (c < 0) {
                     return null;
+                }
                 b = n;
                 n = f;
             }
@@ -698,13 +717,15 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * null just as it is about to be returned, in which case we
          * lost a race with a deletion, so must retry.
          */
-        for (;;) {
+        for (; ; ) {
             Node<E> n = findNode(key);
-            if (n == null)
+            if (n == null) {
                 return null;
+            }
             Object v = n.value;
-            if (v != null)
+            if (v != null) {
                 return (E) v;
+            }
         }
     }
     /* ---------------- Insertion -------------- */
@@ -713,28 +734,29 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * Main insertion method. Adds element if not present, or
      * replaces value if present and onlyIfAbsent is false.
      *
-     * @param kkey         the key
-     * @param value        the value that must be associated with key
-     * @param onlyIfAbsent if should not insert if already present
-     * @return the old value, or null if newly inserted
+     * @param kkey the key
      */
     private void doPut(E kkey) {
         Comparable<? super E> key = comparable(kkey);
-        for (;;) {
+        for (; ; ) {
             Node<E> b = findPredecessor(key);
             Node<E> n = b.next;
-            for (;;) {
+            for (; ; ) {
                 if (n != null) {
                     Node<E> f = n.next;
                     if (n != b.next)               // inconsistent read
+                    {
                         break;
+                    }
                     Object v = n.value;
                     if (v == null) {               // n is deleted
                         n.helpDelete(b, f);
                         break;
                     }
                     if (v == n || b.value == null) // b is deleted
+                    {
                         break;
+                    }
                     int c = key.compareTo(n.key);
                     if (c >= 0) {
                         b = n;
@@ -744,12 +766,14 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                     // else c < 0; fall through
                 }
 
-                Node<E> z = new Node<E>(kkey, n);
-                if (!b.casNext(n, z))
+                Node<E> z = new Node<>(kkey, n);
+                if (!b.casNext(n, z)) {
                     break;         // restart if lost race to append to b
+                }
                 int level = randomLevel();
-                if (level > 0)
+                if (level > 0) {
                     insertIndex(z, level);
+                }
                 return;
             }
         }
@@ -759,7 +783,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * Returns a random level for inserting a new node.
      * Hardwired to k=1, p=0.5, max 31 (see above and
      * Pugh's "Skip List Cookbook", sec 3.4).
-     *
+     * <p>
      * This uses the simplest of the generators described in George
      * Marsaglia's "Xorshift RNGs" paper. This is not a high-quality
      * generator but is acceptable here.
@@ -770,17 +794,20 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         x ^= x >>> 17;
         randomSeed = x ^= x << 5;
         if ((x & 0x80000001) != 0) // test highest and lowest bits
+        {
             return 0;
+        }
         int level = 1;
-        while (((x >>>= 1) & 1) != 0)
+        while (((x >>>= 1) & 1) != 0) {
             ++level;
+        }
         return level;
     }
 
     /**
      * Creates and adds index nodes for the given node.
      *
-     * @param z     the node
+     * @param z the node
      * @param level the level of the index
      */
     private void insertIndex(Node<E> z, int level) {
@@ -789,10 +816,10 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
 
         if (level <= max) {
             Index<E> idx = null;
-            for (int i = 1; i <= level; ++i)
-                idx = new Index<E>(z, idx, null);
+            for (int i = 1; i <= level; ++i) {
+                idx = new Index<>(z, idx, null);
+            }
             addIndex(idx, h, level);
-
         } else { // Add a new level
             /*
              * To reduce interference by other threads checking for
@@ -805,12 +832,13 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             level = max + 1;
             Index<E>[] idxs = (Index<E>[]) new Index[level + 1];
             Index<E> idx = null;
-            for (int i = 1; i <= level; ++i)
-                idxs[i] = idx = new Index<E>(z, idx, null);
+            for (int i = 1; i <= level; ++i) {
+                idxs[i] = idx = new Index<>(z, idx, null);
+            }
 
             HeadIndex<E> oldh;
             int k;
-            for (;;) {
+            for (; ; ) {
                 oldh = head;
                 int oldLevel = oldh.level;
                 if (level <= oldLevel) { // lost race to add level
@@ -819,8 +847,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                 }
                 HeadIndex<E> newh = oldh;
                 Node<E> oldbase = oldh.node;
-                for (int j = oldLevel + 1; j <= level; ++j)
-                    newh = new HeadIndex<E>(oldbase, newh, idxs[j], j);
+                for (int j = oldLevel + 1; j <= level; ++j) {
+                    newh = new HeadIndex<>(oldbase, newh, idxs[j], j);
+                }
                 if (casHead(oldh, newh)) {
                     k = oldLevel;
                     break;
@@ -833,33 +862,35 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     /**
      * Adds given index nodes from given level down to 1.
      *
-     * @param idx        the topmost index node being inserted
-     * @param h          the value of head to use to insert. This must be
-     *                   snapshotted by callers to provide correct insertion level
+     * @param idx the topmost index node being inserted
+     * @param h the value of head to use to insert. This must be
+     * snapshotted by callers to provide correct insertion level
      * @param indexLevel the level of the index
      */
     private void addIndex(Index<E> idx, HeadIndex<E> h, int indexLevel) {
         // Track next level to insert in case of retries
         int insertionLevel = indexLevel;
         Comparable<? super E> key = comparable(idx.node.key);
-        if (key == null)
+        if (key == null) {
             throw new NullPointerException();
+        }
 
         // Similar to findPredecessor, but adding index nodes along
         // path to key.
-        for (;;) {
+        for (; ; ) {
             int j = h.level;
             Index<E> q = h;
             Index<E> r = q.right;
             Index<E> t = idx;
-            for (;;) {
+            for (; ; ) {
                 if (r != null) {
                     Node<E> n = r.node;
                     // compare before deletion check avoids needing recheck
                     int c = key.compareTo(n.key);
                     if (n.value == null) {
-                        if (!q.unlink(r))
+                        if (!q.unlink(r)) {
                             break;
+                        }
                         r = q.right;
                         continue;
                     }
@@ -876,18 +907,21 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                         findNode(key); // cleans up
                         return;
                     }
-                    if (!q.link(r, t))
+                    if (!q.link(r, t)) {
                         break; // restart
+                    }
                     if (--insertionLevel == 0) {
                         // need final deletion check before return
-                        if (t.indexesDeletedNode())
+                        if (t.indexesDeletedNode()) {
                             findNode(key);
+                        }
                         return;
                     }
                 }
 
-                if (--j >= insertionLevel && j < indexLevel)
+                if (--j >= insertionLevel && j < indexLevel) {
                     t = t.down;
+                }
                 q = q.down;
                 r = q.right;
             }
@@ -895,11 +929,12 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Deletion -------------- */
+
     /**
      * Main deletion method. Locates node, nulls value, appends a
      * deletion marker, unlinks predecessor, removes associated index
      * nodes, and possibly reduces head index level.
-     *
+     * <p>
      * Index nodes are cleared out simply by calling findPredecessor.
      * which unlinks indexes to deleted nodes found along path to key,
      * which will include the indexes to this node. This is done
@@ -909,47 +944,56 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * search for it, and we'd like to ensure lack of garbage
      * retention, so must call to be sure.
      *
-     * @param okey  the key
+     * @param okey the key
      * @param value if non-null, the value that must be
-     *              associated with key
+     * associated with key
      * @return the node, or null if not found
      */
     private E doRemove(Object okey, Object value) {
         Comparable<? super E> key = comparable(okey);
-        for (;;) {
+        for (; ; ) {
             Node<E> b = findPredecessor(key);
             Node<E> n = b.next;
-            for (;;) {
-                if (n == null)
+            for (; ; ) {
+                if (n == null) {
                     return null;
+                }
                 Node<E> f = n.next;
                 if (n != b.next)                    // inconsistent read
+                {
                     break;
+                }
                 Object v = n.value;
                 if (v == null) {                    // n is deleted
                     n.helpDelete(b, f);
                     break;
                 }
                 if (v == n || b.value == null)      // b is deleted
+                {
                     break;
+                }
                 int c = key.compareTo(n.key);
-                if (c < 0)
+                if (c < 0) {
                     return null;
+                }
                 if (c > 0) {
                     b = n;
                     n = f;
                     continue;
                 }
-                if (value != null && !value.equals(v))
+                if (value != null && !value.equals(v)) {
                     return null;
-                if (!n.casValue(v, null))
+                }
+                if (!n.casValue(v, null)) {
                     break;
-                if (!n.appendMarker(f) || !b.casNext(n, f))
+                }
+                if (!n.appendMarker(f) || !b.casNext(n, f)) {
                     findNode(key);                  // Retry via findNode
-                else {
+                } else {
                     findPredecessor(key);           // Clean index
-                    if (head.right == null)
+                    if (head.right == null) {
                         tryReduceLevel();
+                    }
                 }
                 return (E) v;
             }
@@ -969,7 +1013,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * unless current thread stalls immediately before first CAS, in
      * which case it is very unlikely to stall again immediately
      * afterwards, so will recover.)
-     *
+     * <p>
      * We put up with all this rather than just let levels grow
      * because otherwise, even a small map that has undergone a large
      * number of insertions and removals will have a lot of levels,
@@ -980,31 +1024,31 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         HeadIndex<E> h = head;
         HeadIndex<E> d;
         HeadIndex<E> e;
-        if (h.level > 3
-                && (d = (HeadIndex<E>) h.down) != null
-                && (e = (HeadIndex<E>) d.down) != null
-                && e.right == null
-                && d.right == null
-                && h.right == null
+        if (h.level > 3 && (d = (HeadIndex<E>) h.down) != null && (e = (HeadIndex<E>) d.down) != null && e.right == null && d.right == null && h.right == null
                 && casHead(h, d) && // try to set
                 h.right != null) // recheck
+        {
             casHead(d, h);   // try to backout
+        }
     }
 
     /* ---------------- Finding and removing first element -------------- */
+
     /**
      * Specialized variant of findNode to get first valid node.
      *
      * @return first node or null if empty
      */
-    Node<E> findFirst() {
-        for (;;) {
+    private Node<E> findFirst() {
+        for (; ; ) {
             Node<E> b = head.node;
             Node<E> n = b.next;
-            if (n == null)
+            if (n == null) {
                 return null;
-            if (n.value != null)
+            }
+            if (n.value != null) {
                 return n;
+            }
             n.helpDelete(b, n.next);
         }
     }
@@ -1014,24 +1058,28 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      *
      * @return null if empty, else snapshot of first entry
      */
-    E doRemoveFirst() {
-        for (;;) {
+    private E doRemoveFirst() {
+        for (; ; ) {
             Node<E> b = head.node;
             Node<E> n = b.next;
-            if (n == null)
+            if (n == null) {
                 return null;
+            }
             Node<E> f = n.next;
-            if (n != b.next)
+            if (n != b.next) {
                 continue;
+            }
             Object v = n.value;
             if (v == null) {
                 n.helpDelete(b, f);
                 continue;
             }
-            if (!n.casValue(v, null))
+            if (!n.casValue(v, null)) {
                 continue;
-            if (!n.appendMarker(f) || !b.casNext(n, f))
+            }
+            if (!n.appendMarker(f) || !b.casNext(n, f)) {
                 findFirst(); // retry
+            }
             clearIndexToFirst();
             return n.key;
         }
@@ -1041,15 +1089,17 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * Clears out index nodes associated with deleted first entry.
      */
     private void clearIndexToFirst() {
-        for (;;) {
+        for (; ; ) {
             Index<E> q = head;
-            for (;;) {
+            for (; ; ) {
                 Index<E> r = q.right;
-                if (r != null && r.indexesDeletedNode() && !q.unlink(r))
+                if (r != null && r.indexesDeletedNode() && !q.unlink(r)) {
                     break;
+                }
                 if ((q = q.down) == null) {
-                    if (head.right == null)
+                    if (head.right == null) {
                         tryReduceLevel();
+                    }
                     return;
                 }
             }
@@ -1058,44 +1108,50 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
 
 
     /* ---------------- Finding and removing last element -------------- */
+
     /**
      * Specialized version of find to get last valid node.
      *
      * @return last node or null if empty
      */
-    Node<E> findLast() {
+    private Node<E> findLast() {
         /*
          * findPredecessor can't be used to traverse index level
          * because this doesn't use comparisons.  So traversals of
          * both levels are folded together.
          */
         Index<E> q = head;
-        for (;;) {
+        for (; ; ) {
             Index<E> d, r;
             if ((r = q.right) != null) {
                 if (r.indexesDeletedNode()) {
                     q.unlink(r);
                     q = head; // restart
-                } else
+                } else {
                     q = r;
+                }
             } else if ((d = q.down) != null) {
                 q = d;
             } else {
                 Node<E> b = q.node;
                 Node<E> n = b.next;
-                for (;;) {
-                    if (n == null)
+                for (; ; ) {
+                    if (n == null) {
                         return b.isBaseHeader() ? null : b;
+                    }
                     Node<E> f = n.next;            // inconsistent read
-                    if (n != b.next)
+                    if (n != b.next) {
                         break;
+                    }
                     Object v = n.value;
                     if (v == null) {                 // n is deleted
                         n.helpDelete(b, f);
                         break;
                     }
                     if (v == n || b.value == null)   // b is deleted
+                    {
                         break;
+                    }
                     b = n;
                     n = f;
                 }
@@ -1113,9 +1169,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * @return likely predecessor of last node
      */
     private Node<E> findPredecessorOfLast() {
-        for (;;) {
+        for (; ; ) {
             Index<E> q = head;
-            for (;;) {
+            for (; ; ) {
                 Index<E> d, r;
                 if ((r = q.right) != null) {
                     if (r.indexesDeletedNode()) {
@@ -1128,10 +1184,11 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                         continue;
                     }
                 }
-                if ((d = q.down) != null)
+                if ((d = q.down) != null) {
                     q = d;
-                else
+                } else {
                     return q.node;
+                }
             }
         }
     }
@@ -1143,41 +1200,49 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * @return null if empty, else snapshot of last entry
      */
     E doRemoveLastEntry() {
-        for (;;) {
+        for (; ; ) {
             Node<E> b = findPredecessorOfLast();
             Node<E> n = b.next;
             if (n == null) {
                 if (b.isBaseHeader())               // empty
+                {
                     return null;
-                else
+                } else {
                     continue; // all b's successors are deleted; retry
+                }
             }
-            for (;;) {
+            for (; ; ) {
                 Node<E> f = n.next;
                 if (n != b.next)                    // inconsistent read
+                {
                     break;
+                }
                 Object v = n.value;
                 if (v == null) {                    // n is deleted
                     n.helpDelete(b, f);
                     break;
                 }
                 if (v == n || b.value == null)      // b is deleted
+                {
                     break;
+                }
                 if (f != null) {
                     b = n;
                     n = f;
                     continue;
                 }
-                if (!n.casValue(v, null))
+                if (!n.casValue(v, null)) {
                     break;
+                }
                 E key = n.key;
                 Comparable<? super E> ck = comparable(key);
-                if (!n.appendMarker(f) || !b.casNext(n, f))
+                if (!n.appendMarker(f) || !b.casNext(n, f)) {
                     findNode(ck);                  // Retry via findNode
-                else {
+                } else {
                     findPredecessor(ck);           // Clean index
-                    if (head.right == null)
+                    if (head.right == null) {
                         tryReduceLevel();
+                    }
                 }
                 return key;
             }
@@ -1185,11 +1250,12 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Constructors -------------- */
+
     /**
      * Constructs a new, empty map, sorted according to the
      * {@linkplain Comparable natural ordering} of the keys.
      */
-    public ConcurrentSkipListPriorityQueue() {
+    ConcurrentSkipListPriorityQueue() {
         this.comparator = null;
         initialize();
     }
@@ -1199,15 +1265,15 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * comparator.
      *
      * @param comparator the comparator that will be used to order this map.
-     *                   If <tt>null</tt>, the {@linkplain Comparable natural
-     *        ordering} of the keys will be used.
+     * If <tt>null</tt>, the {@linkplain Comparable natural
+     * ordering} of the keys will be used.
      */
-    public ConcurrentSkipListPriorityQueue(Comparator<? super E> comparator) {
+    ConcurrentSkipListPriorityQueue(Comparator<? super E> comparator) {
         this.comparator = comparator;
         initialize();
     }
 
-    public ConcurrentSkipListPriorityQueue(Collection<? extends E> m) {
+    ConcurrentSkipListPriorityQueue(Collection<? extends E> m) {
         this.comparator = null;
         initialize();
         addAll(m);
@@ -1221,7 +1287,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      */
     @Override
     public ConcurrentSkipListPriorityQueue<E> clone() {
-        ConcurrentSkipListPriorityQueue<E> clone = null;
+        ConcurrentSkipListPriorityQueue<E> clone;
         try {
             clone = (ConcurrentSkipListPriorityQueue<E>) super.clone();
         } catch (CloneNotSupportedException e) {
@@ -1239,48 +1305,52 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * method.
      */
     private void buildFromSorted(ConcurrentSkipListPriorityQueue<E> pq) {
-        if (pq == null)
+        if (pq == null) {
             throw new NullPointerException();
+        }
 
         HeadIndex<E> h = head;
         Node<E> basepred = h.node;
 
         // Track the current rightmost node at each level. Uses an
         // ArrayList to avoid committing to initial or maximum level.
-        ArrayList<Index<E>> preds = new ArrayList<Index<E>>();
+        ArrayList<Index<E>> preds = new ArrayList<>();
 
         // initialize
-        for (int i = 0; i <= h.level; ++i)
+        for (int i = 0; i <= h.level; ++i) {
             preds.add(null);
+        }
         Index<E> q = h;
         for (int i = h.level; i > 0; --i) {
             preds.set(i, q);
             q = q.down;
         }
 
-        Iterator<E> it = pq.iterator();
-        while (it.hasNext()) {
-            E k = it.next();
+        for (E k : pq) {
             int j = randomLevel();
-            if (j > h.level)
+            if (j > h.level) {
                 j = h.level + 1;
-            if (k == null)
+            }
+            if (k == null) {
                 throw new NullPointerException();
-            Node<E> z = new Node<E>(k, null);
+            }
+            Node<E> z = new Node<>(k, null);
             basepred.next = z;
             basepred = z;
             if (j > 0) {
                 Index<E> idx = null;
                 for (int i = 1; i <= j; ++i) {
-                    idx = new Index<E>(z, idx, null);
-                    if (i > h.level)
-                        h = new HeadIndex<E>(h.node, h, idx, i);
+                    idx = new Index<>(z, idx, null);
+                    if (i > h.level) {
+                        h = new HeadIndex<>(h.node, h, idx, i);
+                    }
 
                     if (i < preds.size()) {
                         preds.get(i).right = idx;
                         preds.set(i, idx);
-                    } else
+                    } else {
                         preds.add(idx);
+                    }
                 }
             }
         }
@@ -1288,6 +1358,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /* ---------------- Serialization -------------- */
+
     /**
      * Save the state of this map to a stream.
      *
@@ -1297,16 +1368,16 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * (as determined by the Comparator, or by the keys' natural
      * ordering if no Comparator).
      */
-    private void writeObject(java.io.ObjectOutputStream s)
-            throws java.io.IOException {
+    private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
         // Write out the Comparator and any hidden stuff
         s.defaultWriteObject();
 
         // Write out keys and values (alternating)
         for (Node<E> n = findFirst(); n != null; n = n.next) {
             E v = n.getValidValue();
-            if (v != null)
+            if (v != null) {
                 s.writeObject(n.key);
+            }
         }
         s.writeObject(null);
     }
@@ -1314,8 +1385,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     /**
      * Reconstitute the map from a stream.
      */
-    private void readObject(final java.io.ObjectInputStream s)
-            throws java.io.IOException, ClassNotFoundException {
+    private void readObject(final java.io.ObjectInputStream s) throws java.io.IOException, ClassNotFoundException {
         // Read in the Comparator and any hidden stuff
         s.defaultReadObject();
         // Reset transients
@@ -1331,38 +1401,43 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
 
         HeadIndex<E> h = head;
         Node<E> basepred = h.node;
-        ArrayList<Index<E>> preds = new ArrayList<Index<E>>();
-        for (int i = 0; i <= h.level; ++i)
+        ArrayList<Index<E>> preds = new ArrayList<>();
+        for (int i = 0; i <= h.level; ++i) {
             preds.add(null);
+        }
         Index<E> q = h;
         for (int i = h.level; i > 0; --i) {
             preds.set(i, q);
             q = q.down;
         }
 
-        for (;;) {
+        for (; ; ) {
             Object k = s.readObject();
-            if (k == null)
+            if (k == null) {
                 break;
+            }
             E key = (E) k;
             int j = randomLevel();
-            if (j > h.level)
+            if (j > h.level) {
                 j = h.level + 1;
-            Node<E> z = new Node<E>(key, null);
+            }
+            Node<E> z = new Node<>(key, null);
             basepred.next = z;
             basepred = z;
             if (j > 0) {
                 Index<E> idx = null;
                 for (int i = 1; i <= j; ++i) {
-                    idx = new Index<E>(z, idx, null);
-                    if (i > h.level)
-                        h = new HeadIndex<E>(h.node, h, idx, i);
+                    idx = new Index<>(z, idx, null);
+                    if (i > h.level) {
+                        h = new HeadIndex<>(h.node, h, idx, i);
+                    }
 
                     if (i < preds.size()) {
                         preds.get(i).right = idx;
                         preds.set(i, idx);
-                    } else
+                    } else {
                         preds.add(idx);
+                    }
                 }
             }
         }
@@ -1377,8 +1452,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
 
     @Override
     public boolean offer(E key) {
-        if (key == null)
+        if (key == null) {
             throw new NullPointerException();
+        }
         doPut(key);
         return true;
     }
@@ -1391,15 +1467,17 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     @Override
     public E peek() {
         Node<E> n = findFirst();
-        if (n == null)
+        if (n == null) {
             return null;
+        }
         return n.key;
     }
 
     public E peekLast() {
         Node<E> n = findLast();
-        if (n == null)
+        if (n == null) {
             return null;
+        }
         return n.key;
     }
 
@@ -1417,7 +1495,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * Returns the number of key-value mappings in this map. If this map
      * contains more than <tt>Integer.MAX_VALUE</tt> elements, it
      * returns <tt>Integer.MAX_VALUE</tt>.
-     *
+     * <p>
      * <p>Beware that, unlike in most collections, this method is
      * <em>NOT</em> a constant-time operation. Because of the
      * asynchronous nature of these maps, determining the current
@@ -1433,8 +1511,9 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     public int size() {
         long count = 0;
         for (Node<E> n = findFirst(); n != null; n = n.next) {
-            if (n.getValidValue() != null)
+            if (n.getValidValue() != null) {
                 ++count;
+            }
         }
         return (count >= Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) count;
     }
@@ -1461,7 +1540,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         return comparator;
     }
 
-    class Iter implements Iterator<E> {
+    private class Iter implements Iterator<E> {
         /**
          * the last node returned by next()
          */
@@ -1475,13 +1554,15 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * Initializes ascending iterator for entire range.
          */
         Iter() {
-            for (;;) {
+            for (; ; ) {
                 next = findFirst();
-                if (next == null)
+                if (next == null) {
                     break;
+                }
                 Object x = next.value;
-                if (x != null && x != next)
+                if (x != null && x != next) {
                     break;
+                }
             }
         }
 
@@ -1501,24 +1582,28 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * Advances next to higher entry.
          */
         final void advance() {
-            if (next == null)
+            if (next == null) {
                 throw new NoSuchElementException();
+            }
             lastReturned = next;
-            for (;;) {
+            for (; ; ) {
                 next = next.next;
-                if (next == null)
+                if (next == null) {
                     break;
+                }
                 Object x = next.value;
-                if (x != null && x != next)
+                if (x != null && x != next) {
                     break;
+                }
             }
         }
 
         @Override
         public void remove() {
             Node<E> l = lastReturned;
-            if (l == null)
+            if (l == null) {
                 throw new IllegalStateException();
+            }
             // It would not be worth all of the overhead to directly
             // unlink from here. Using remove is fast enough.
             ConcurrentSkipListPriorityQueue.this.remove(l.key);
@@ -1531,11 +1616,12 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * to allow use by SubMaps, which outweighs the ugliness of
      * needing type-tests for Iterator methods.
      */
-    static <E> List<E> toList(Collection<E> c) {
+    private static <E> List<E> toList(Collection<E> c) {
         // Using size() here would be a pessimization.
-        List<E> list = new ArrayList<E>(c.size());
-        for (E e : c)
+        List<E> list = new ArrayList<>(c.size());
+        for (E e : c) {
             list.add(e);
+        }
         return list;
     }
 
@@ -1548,6 +1634,7 @@ class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     public <T> T[] toArray(T[] a) {
         return toList(this).toArray(a);
     }
+
     // Unsafe mechanics
     private static final sun.misc.Unsafe UNSAFE;
     private static final long headOffset;
