@@ -4,35 +4,53 @@
  * This program and the accompanying materials are license under the terms of the
  * MIT license.
  */
-package co.paralleluniverse.vtime.instrumentation;
+package co.paralleluniverse.vtime;
 
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.IllegalClassFormatException;
+import java.security.ProtectionDomain;
 import java.util.*;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import co.paralleluniverse.vtime.VirtualClock;
+import co.paralleluniverse.vtime.boot.ClockProxy;
 
 /**
  * @author pron
  */
-public class VirtualTimeClassTransformer extends ASMClassFileTransformer {
+class VirtualTimeClassTransformer implements ClassFileTransformer {
     private static final String PACKAGE = VirtualClock.class.getPackage().getName().replace('.', '/');
     private static final String CLOCK = Type.getInternalName(ClockProxy.class);
 
-    private final Set<String> m_includedMethods;
+    private final Set<String> includedMethods;
 
-    public VirtualTimeClassTransformer(Set<String> includedMethods) {
-        m_includedMethods = includedMethods;
+    VirtualTimeClassTransformer(Set<String> includedMethods) {
+        this.includedMethods = includedMethods;
     }
 
     @Override
-    protected boolean accept(String className) {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+            throws IllegalClassFormatException {
+        try {
+            if (accept(className)) {
+                return instrumentClass(classfileBuffer);
+            } else {
+                return null;
+            }
+        } catch (Throwable t) {
+            Logger.warning("Instrumentation by %s failed for class %s:", t, getClass().getName(), Type.getType(classBeingRedefined).getClassName());
+            throw t; // same effect as returning null
+        }
+    }
+
+    private boolean accept(String className) {
         return className != null && !className.startsWith(PACKAGE);
     }
 
-    @Override
-    protected ClassVisitor createVisitor(ClassVisitor next) {
+    private ClassVisitor createVisitor(ClassVisitor next) {
         return new ClassVisitor(Opcodes.ASM5, next) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -45,7 +63,7 @@ public class VirtualTimeClassTransformer extends ASMClassFileTransformer {
                     }
 
                     private boolean captureTimeCall(String owner, String name, String desc) {
-                        if (m_includedMethods != null && !m_includedMethods.contains(name)) {
+                        if (includedMethods != null && !includedMethods.contains(name)) {
                             return false;
                         }
 
@@ -93,5 +111,13 @@ public class VirtualTimeClassTransformer extends ASMClassFileTransformer {
                 };
             }
         };
+    }
+
+    private byte[] instrumentClass(byte[] classfileBuffer) {
+        ClassReader cr = new ClassReader(classfileBuffer);
+        ClassWriter cw = new ClassWriter(cr, 0);
+        ClassVisitor cv = createVisitor(cw);
+        cr.accept(cv, 0);
+        return cw.toByteArray();
     }
 }

@@ -69,4 +69,8 @@ public final class SystemClock implements Clock {
     public void Unsafe_park(sun.misc.Unsafe unsafe, boolean isAbsolute, long timeout) {
         unsafe.park(isAbsolute, timeout);
     }
+
+    @Override
+    public void afterGlobalClockSetup() {
+    }
 }

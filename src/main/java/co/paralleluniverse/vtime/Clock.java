@@ -33,4 +33,6 @@ public interface Clock {
     void Thread_sleep(long millis, int nanos) throws InterruptedException;
 
     void Unsafe_park(sun.misc.Unsafe unsafe, boolean isAbsolute, long timeout);
+
+    void afterGlobalClockSetup();
 }

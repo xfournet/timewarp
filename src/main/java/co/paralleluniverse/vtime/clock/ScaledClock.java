@@ -15,6 +15,12 @@ import co.paralleluniverse.vtime.Clock;
  * @author pron
  */
 public final class ScaledClock implements Clock {
+
+    public static Clock create(Clock clock, String conf) {
+        double scale = Double.parseDouble(conf);
+        return new ScaledClock(clock, scale);
+    }
+
     private final int NANO_MILLIS = 1000 * 1000;
 
     private final Clock source;
@@ -95,5 +101,10 @@ public final class ScaledClock implements Clock {
         } else {
             source.Unsafe_park(unsafe, isAbsolute, source.System_currentTimeMillis() + (long) ((timeout - System_currentTimeMillis()) / scale));
         }
+    }
+
+    @Override
+    public void afterGlobalClockSetup() {
+        source.afterGlobalClockSetup();
     }
 }

@@ -4,7 +4,7 @@
  * This program and the accompanying materials are license under the terms of the
  * MIT license.
  */
-package co.paralleluniverse.vtime.instrumentation;
+package co.paralleluniverse.vtime.boot;
 
 import java.lang.management.RuntimeMXBean;
 import co.paralleluniverse.vtime.VirtualClock;

@@ -11,6 +11,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 import co.paralleluniverse.vtime.Clock;
+import co.paralleluniverse.vtime.Logger;
+
+import static co.paralleluniverse.vtime.clock.Util.parseDate;
 
 /**
  * A clock that only progresses when its time is manually advanced by calls to {@link #advance(long, TimeUnit) advance}.
@@ -18,6 +21,18 @@ import co.paralleluniverse.vtime.Clock;
  * @author pron
  */
 public final class ManualClock implements Clock {
+
+    public static Clock create(Clock clock, String conf) {
+        Logger.info("Manual clock ignore previous clock %s", clock);
+        long startTime;
+        if (conf.startsWith("@")) {
+            startTime = parseDate(conf.substring(1));
+        } else {
+            startTime = Long.parseLong(conf);
+        }
+        return new ManualClock(startTime);
+    }
+
     private final Queue<Scheduled> waiters = new ConcurrentSkipListPriorityQueue<>();
     private final long startTime;
     private volatile long nanos;
@@ -140,6 +155,10 @@ public final class ManualClock implements Clock {
                 unsafe.park(false, 0L);
             }
         }
+    }
+
+    @Override
+    public void afterGlobalClockSetup() {
     }
 
     private void handleInterrupted(long deadline, InterruptedException e) throws InterruptedException {

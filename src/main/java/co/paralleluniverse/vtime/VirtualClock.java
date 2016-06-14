@@ -18,6 +18,7 @@ public final class VirtualClock {
 
     /**
      * Puts the given clock in effect for the all threads
+     *
      * @param clock the {@link Clock} to be used for global clock
      */
     static void setGlobal(Clock clock) {
