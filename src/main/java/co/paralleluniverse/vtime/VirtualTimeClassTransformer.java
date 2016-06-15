@@ -63,10 +63,6 @@ class VirtualTimeClassTransformer implements ClassFileTransformer {
                     }
 
                     private boolean captureTimeCall(String owner, String name, String desc) {
-                        if (includedMethods != null && !includedMethods.contains(name)) {
-                            return false;
-                        }
-
                         switch (owner) {
                             case "java/lang/Object":
                                 if ("wait".equals(name)) {
@@ -101,8 +97,12 @@ class VirtualTimeClassTransformer implements ClassFileTransformer {
                     }
 
                     private boolean callClockMethod(String name, String desc) {
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, CLOCK, name, desc, false);
-                        return true;
+                        if (includedMethods == null || includedMethods.contains(name)) {
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, CLOCK, name, desc, false);
+                            return true;
+                        } else {
+                            return false;
+                        }
                     }
 
                     private String instanceToStatic(String owner, String desc) {
