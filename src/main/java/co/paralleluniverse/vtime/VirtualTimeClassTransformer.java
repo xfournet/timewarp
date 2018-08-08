@@ -51,7 +51,8 @@ class VirtualTimeClassTransformer implements ClassFileTransformer {
     }
 
     private ClassVisitor createVisitor(ClassVisitor next) {
-        return new ClassVisitor(Opcodes.ASM5, next) {
+        int api = System.getProperty("java.version").startsWith("1.8") ? Opcodes.ASM5 : Opcodes.ASM6;
+        return new ClassVisitor(api, next) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
                 return new MethodVisitor(api, super.visitMethod(access, name, desc, signature, exceptions)) {
