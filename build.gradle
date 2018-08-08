@@ -10,7 +10,7 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version '1.2.1'
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
     id 'maven'
     id 'signing'
 }
@@ -59,13 +59,13 @@ jar {
 
 shadowJar {
     outputs.upToDateWhen { false }
-        
+
     // artifactAttached = false
     classifier = '' // 'shadow'
     destinationDir = file("$buildDir/libs")
 
     // dependencies { exclude(dependency('co.paralleluniverse:capsule:.*')) }
-    
+
     exclude 'META-INF/**'
     exclude 'licenses/**'
     exclude 'about.html'
@@ -76,7 +76,7 @@ shadowJar {
     exclude 'META-INF/INDEX.LIST'
 
     relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
-            
+
     manifest.inheritFrom jar.manifest
 }
 
@@ -156,7 +156,7 @@ uploadArchives {
 }
 
 [build, install, signArchives, uploadArchives]*.dependsOn shadowJar
-    
+
 install.repositories.mavenInstaller {
     pom.whenConfigured {
         it.dependencies.clear()
