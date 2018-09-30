@@ -22,7 +22,7 @@ targetCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 group               = "co.paralleluniverse"
-version             = "1.0.0-SNAPSHOT"
+version             = "1.1.0-SNAPSHOT"
 status              = "integration"
 description         = "Virtual Time for the JVM"
 ext.url             = "http://puniverse.github.com/timewarp"
@@ -40,7 +40,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.ow2.asm:asm:6.2.1"
+    compile "org.ow2.asm:asm:7.0-beta"
     testCompile 'junit:junit:4.10'
 }
 
